@@ -1,13 +1,13 @@
 /* ============================================================
-   回声层：第七页 — 文本与线索数据
+   不要回复第七页 — 文本与线索数据
    ============================================================ */
 window.DATA = (function () {
   const people = {
     nan: { name: "南岸", real: "顾南", role: "论坛管理员", avatar: "avatar_nan.jpg", joined: "2009-03-11", posts: 2841, sig: "服务站的事，找我。" },
     wind: { name: "晚风", real: "顾晚", role: "论坛版主", avatar: "avatar_wind.jpg", joined: "2010-04-17", posts: 1620, sig: "把旧帖子整理好，别让它们丢。", last: "2014-09-07 02:17" },
-    zhou: { name: "老周", real: "", role: "服务站维修", avatar: "avatar_zhou.jpg", joined: "2008-06-02", posts: 3902, sig: "灯坏了、门坏了，都归我。" },
-    man: { name: "小满", real: "", role: "居民", avatar: "avatar_man.jpg", joined: "2012-11-19", posts: 486, sig: "我住在三单元。" },
-    mei: { name: "阿梅", real: "", role: "居民", avatar: "avatar_mei.jpg", joined: "2011-02-08", posts: 718, sig: "老街的事我都记得一点。" },
+    zhou: { name: "老周", real: "", role: "服务站维修", avatar: "avatar_zhou.jpg", joined: "2008-06-02", posts: 3902, account: "zhou_0717", sig: "灯坏了、门坏了，都归我。" },
+    man: { name: "小满", real: "", role: "居民", avatar: "avatar_man.jpg", joined: "2012-11-19", posts: 486, account: "xiaoman", sig: "我住在三单元。" },
+    mei: { name: "阿梅", real: "", role: "居民", avatar: "avatar_mei.jpg", joined: "2011-02-08", posts: 718, account: "amei_2004", sig: "老街的事我都记得一点。" },
     chen: { name: "小陈", real: "", role: "夜间值班员", avatar: "avatar_chen.jpg", joined: "2013-05-21", posts: 203, sig: "夜班，二楼。" },
     guest: { name: "访客", real: "", role: "未注册用户", avatar: "avatar_guest.jpg", joined: "", posts: 0, sig: "" }
   };
@@ -16,7 +16,8 @@ window.DATA = (function () {
     { id: "life", name: "生活广场", sub: "居民日常交流", desc: "邻里琐事、失物招领、社区里的闲话。", count: 4213 },
     { id: "repair", name: "报修专区", sub: "物业与维修记录", desc: "电路、门锁、管道，还有那些修不好的东西。", count: 761 },
     { id: "notice", name: "站务公告", sub: "管理员发布", desc: "论坛的通知、规则和迁移安排。", count: 58 },
-    { id: "photos", name: "旧照片区", sub: "老街与社区影像", desc: "居民上传的旧照片，扫描件居多。", count: 96 }
+    { id: "photos", name: "旧照片区", sub: "老街与社区影像", desc: "居民上传的旧照片，扫描件居多。", count: 96 },
+    { id: "staff", name: "值班室", sub: "仅值班人员可见", desc: "夜间值班记录、交接和不想让居民看见的东西。", count: 7, memberOnly: true }
   ];
 
   const threads = [
@@ -64,6 +65,26 @@ window.DATA = (function () {
       ]
     },
 
+    {
+      id: "l5", section: "life", title: "社区食堂的最后一顿饭", author: "mei",
+      time: "2014-09-06 12:10", last: "2014-09-06 13:02", views: 96,
+      body: "<p>食堂下周就关了。今天中午还有红烧肉，去晚了就没了。</p><p>我坐的那张桌子，桌角刻着“07”，不知道是谁刻的。</p>",
+      replies: [
+        { by: "zhou", time: "2014-09-06 12:40", body: "给我留一份。我值完夜班过去。" },
+        { by: "man", time: "2014-09-06 12:52", body: "周叔，你夜班不是到早上吗？" },
+        { by: "zhou", time: "2014-09-06 13:02", body: "最近夜班不太对。总感觉多了一个人。" }
+      ]
+    },
+    {
+      id: "l6", section: "life", title: "晚上不要走二楼", author: "chen",
+      time: "2014-09-06 23:55", last: "2014-09-07 00:18", views: 74,
+      body: "<p>二楼走廊的灯这两天一直亮。昨晚我上去看，灯下面站着一个人，背对着楼梯。</p><p>我叫了一声，没回头。等我走到二楼，走廊是空的。</p><p>我不是吓人。真的看见了。</p>",
+      replies: [
+        { by: "mei", time: "2014-09-07 00:03", body: "小陈你别吓人。我晚上都不敢开窗了。" },
+        { by: "nan", time: "2014-09-07 00:12", body: "值班的人可以走。其他人别上去。" },
+        { by: "chen", time: "2014-09-07 00:18", body: "那晚风姐呢？她算值班的人吗？" }
+      ]
+    },
     /* ---------------- 报修专区 ---------------- */
     {
       id: "r1", section: "repair", title: "二楼走廊的灯为什么一直亮着？", author: "chen",
@@ -106,6 +127,16 @@ window.DATA = (function () {
       ]
     },
 
+    {
+      id: "r5", section: "repair", title: "三单元的水管又漏了", author: "man",
+      time: "2014-09-06 08:20", last: "2014-09-06 09:15", views: 58,
+      body: "<p>三单元二楼的水管又漏了，墙上已经起皮。</p><p>报修系统进不去，只能在这里说一声。</p>",
+      replies: [
+        { by: "zhou", time: "2014-09-06 08:52", body: "明天上午修。今晚先关总阀。" },
+        { by: "nan", time: "2014-09-06 09:04", body: "二楼走廊别去。" },
+        { by: "man", time: "2014-09-06 09:15", body: "为什么？灯不是一直亮着吗？" }
+      ]
+    },
     /* ---------------- 站务公告 ---------------- */
     {
       id: "n1", section: "notice", title: "论坛迁移通知", author: "nan",
@@ -157,6 +188,46 @@ window.DATA = (function () {
       replies: []
     },
 
+    {
+      id: "n6", section: "notice", title: "最近登录问题比较多，集中回复一下", author: "nan",
+      time: "2014-09-06 22:40", last: "2014-09-07 00:50", views: 512, pinned: true,
+      body: "<p>最近好几个人说登不上。说明一下：用户名不是昵称，是注册时填的英文名，带下划线。</p><p>阿梅：amei_2004。小满：xiaoman。</p><p>老周：你那个 zhou_0717，别再拿“老周”试了。你注册时非要把钥匙牌号 07 和工号 17 拼在一起，现在又记不住。</p><p>密码忘了就点登录页的“忘记密码”。安全提问是自己填的，别来问我。</p><p class='faint'>注册通道已经关闭，没有账号的居民不要再注册了。</p>",
+      replies: [
+        { by: "mei", time: "2014-09-06 22:51", body: "我试了 amei_2004，还是提示密码错误。" },
+        { by: "nan", time: "2014-09-06 22:54", body: "你上次改过密码。点忘记密码。" },
+        { by: "zhou", time: "2014-09-06 23:16", body: "我那密码也忘了。安全提问是什么？" },
+        { by: "nan", time: "2014-09-06 23:20", body: "你自己填的：钥匙牌上的数字。" },
+        { by: "man", time: "2014-09-07 00:31", body: "周叔你钥匙牌不是一直放在抽屉里吗？" },
+        { by: "zhou", time: "2014-09-07 00:50", body: "……" }
+      ]
+    },
+    {
+      id: "n7", section: "notice", title: "关于清理长期未登录账号的说明", author: "nan",
+      time: "2014-09-06 23:30", last: "2014-09-06 23:58", views: 288,
+      body: "<p>9月8日之后，注册通道永久关闭。现有账号可以登录，但不再接受新注册。</p><p>长期未登录的账号将转入归档，不删除，也不再显示在线状态。</p><p>需要查旧资料的会员，请在关闭前登录。</p>",
+      replies: [
+        { by: "man", time: "2014-09-06 23:37", body: "那晚风姐的账号也会归档吗？" },
+        { by: "nan", time: "2014-09-06 23:41", body: "她的已经归档了。" },
+        { by: "chen", time: "2014-09-06 23:52", body: "归档之后还能登录吗？" },
+        { by: "nan", time: "2014-09-06 23:58", body: "能。只要密码没错。" }
+      ]
+    },
+    {
+      id: "s1", section: "staff", title: "第七个签名", author: "zhou", memberOnly: true,
+      time: "2014-09-07 03:01", last: "2014-09-07 03:12", views: 7,
+      body: "<p>值班表我翻过来了。第七个签名不是我的。</p><p>底下压着一张复写纸，能看清三个字：<b>顾晚</b>。</p><p>她那天没有值班。她只是来替南岸送钥匙。</p><p>南岸说，第七个人没来过。可名字是她自己签的。</p><p>我把那一页撕下来了。不要找。</p>",
+      replies: [
+        { by: "nan", time: "2014-09-07 03:12", body: "老周，把帖子删了。这里只有我们两个人。" }
+      ]
+    },
+    {
+      id: "s2", section: "staff", title: "别烧", author: "nan", memberOnly: true,
+      time: "2014-09-07 03:05", last: "2014-09-07 03:06", views: 4,
+      body: "<p>值班表别留。监控也别留。</p><p>她只是来送钥匙。你想让所有人都知道她来过？</p>",
+      replies: [
+        { by: "zhou", time: "2014-09-07 03:06", body: "已经晚了。" }
+      ]
+    },
     /* ---------------- 旧照片区 ---------------- */
     {
       id: "p1", section: "photos", title: "夜班合照", author: "nan",
@@ -173,12 +244,12 @@ window.DATA = (function () {
       ]
     },
     {
-      id: "p2", section: "photos", title: "服务站门口，2004", author: "mei",
+      id: "p2", section: "photos", title: "服务站门口，那天夜里", author: "mei",
       time: "2014-09-02 09:30", last: "2014-09-02 11:04", views: 201,
-      body: "<p>搬家时找到的。那时候门口的牌子还是红色的。</p><p>现在那块牌子被拆下来放在仓库里了。</p>",
-      photo: "station", caption: "江汀社区服务站 / 2004 / 胶片扫描",
+      body: "<p>不是老照片。上个月路过时用手机拍的。</p><p>门口的牌子还是红色的。现在那块牌子已经被拆下来，放在仓库里了。</p>",
+      photo: "station", caption: "江汀社区服务站 / 2014年8月 / 手机拍摄",
       replies: [
-        { by: "nan", time: "2014-09-02 11:04", body: "这张能发我一份原图吗？档案里缺2004年的门头照。" }
+        { by: "nan", time: "2014-09-02 11:04", body: "这张能发我一份原图吗？档案里缺一张正门的照片。" }
       ]
     },
     {
@@ -205,9 +276,9 @@ window.DATA = (function () {
 
   const photos = {
     group: { src: "assets/img/photo_group.jpg", w: 1200, h: 800 },
-    station: { src: "assets/img/photo_station.jpg", w: 1000, h: 700 },
-    street: { src: "assets/img/photo_street.jpg", w: 1000, h: 700 },
-    corridor: { src: "assets/img/photo_corridor.jpg", w: 1000, h: 700 }
+    station: { src: "assets/img/photo_station.jpg", w: 1200, h: 800 },
+    street: { src: "assets/img/photo_street.jpg", w: 1200, h: 800 },
+    corridor: { src: "assets/img/photo_corridor.jpg", w: 1200, h: 800 }
   };
 
   const delayed = [
@@ -325,6 +396,32 @@ window.DATA = (function () {
     }
   };
 
+  const pm = {
+    from: "wind", to: "zhou", time: "2014-09-07 02:20",
+    subject: "我走了",
+    body: "<p>周叔，我走了。</p><p>二楼的灯不是我开的。值班表上的名字是我签的，但那天值班的不是我。</p><p>别替我瞒了。</p>"
+  };
+
+  const wechat = {
+    contact: { name: "周", avatar: "avatar_zhou.jpg", note: "最后在线 2014-09-07 02:16" },
+    messages: [
+      { time: "02:14", text: "你到了吗？" },
+      { time: "02:14", text: "电脑能开机，就说明我没白留。" },
+      { time: "02:15", text: "先看桌面的「请先阅读.txt」，再进论坛。" },
+      { time: "02:15", text: "论坛别用游客看。我的用户名在站务公告的登录帖里，自己找。" },
+      { time: "02:16", text: "密码是我钥匙牌上的数字，补足四位。忘了就点「忘记密码」。" },
+      { time: "02:16", text: "看到第七页就停下。别回。" }
+    ],
+    deepMessage: { time: "02:31", text: "你已经在里面了。不要刷新页面。" }
+  };
+
+  const accounts = {
+    zhou_0717: { name: "老周", userId: "zhou", passwords: ["0007", "07"] },
+    amei_2004: { name: "阿梅", userId: "mei", passwords: [] },
+    xiaoman: { name: "小满", userId: "man", passwords: [] }
+  };
+  const resetHint = "安全提问：你最后一次值夜班，把钥匙牌落在了抽屉里。牌上的数字就是你设的密码，补足四位。";
+
   const clues = [
     { id: "readme", name: "周留下的便条", text: "不要改时间，不要删缓存，从论坛公开区开始找。" },
     { id: "lastLogin", name: "最后登录：02:17", text: "版主晚风最后一次登录是 2014-09-07 02:17，和论坛首页的更新时间一致。" },
@@ -339,12 +436,13 @@ window.DATA = (function () {
     { id: "onlineAnomaly", name: "在线人数不对", text: "第七页显示“当前在线 1 人 / 正在输入”，但成员列表里所有账号都是离线。" },
     { id: "page7", name: "第七页", text: "分页写着共 6 页，但跳转到第 7 页会出现一篇本不该存在的帖子。" },
     { id: "records", name: "原始记录 0007", text: "02:17 的原始回复在 13 分钟后被复制到 02:30。备份不是保存，是复制。" },
+    { id: "signature", name: "第七个签名", text: "值班表第七个名字是顾晚。她那天没有值班，只是来替南岸送钥匙。" },
     { id: "lastnote", name: "最后一条", text: "不要回答那个一直在等待回答的问题。" }
   ];
 
   return {
     people, sections, threads, photos, delayed, conversations, member,
-    chat, records, notes, clues,
+    chat, records, notes, clues, pm, wechat, accounts, resetHint,
     forumStats: { today: 18420, users: 1327, online: 6, guests: 1, updated: "2014-09-07 02:17" },
     archiveStats: { system: "02:17", backup: "02:30", drift: "+13:00" }
   };

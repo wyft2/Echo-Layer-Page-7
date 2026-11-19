@@ -1,5 +1,5 @@
 /* ============================================================
-   回声层：第七页 — application
+   不要回复第七页 — application
    ============================================================ */
 (function () {
   "use strict";
@@ -35,12 +35,13 @@
       flags: {
         readme: false, forumVisited: false, archiveUnlocked: false, deepVisited: false,
         p7Admin: false, truth: false, records: false, lastNote: false, stopped: false,
-        readEmail: false, hintsUsed: 0
+        readEmail: false, hintsUsed: 0, loggedIn: false, loginUser: "", wxRead: false,
+        pmRead: false, loginFails: 0, wxDeepHeard: false, soundMigrated: false
       },
       clues: {},
       visits: { forum: 0, archive: 0, deep: 0, p7: 0, pages: 0 },
       online: 6,
-      sound: false,
+      sound: true,
       lastLogin: "2014-09-07 02:17"
     };
   }
@@ -119,11 +120,74 @@
       o.start(); o.stop(this.ctx.currentTime + (dur || 0.05));
     },
     click() { this.blip(280, 0.04, "square", 0.012); },
+    close() { this.blip(190, 0.055, "square", 0.008); },
+    page() { this.noise(0.035, 1700, 0.7, 0.008); },
     unlock() { this.blip(520, 0.09, "sine", 0.03); setTimeout(() => this.blip(780, 0.13, "sine", 0.025), 90); },
+    error() {
+      this.blip(110, 0.16, "square", 0.018);
+      setTimeout(() => this.blip(82, 0.2, "square", 0.015), 130);
+    },
     glitch() {
       if (!state.sound) return;
       this.blip(60, 0.18, "sawtooth", 0.03);
       setTimeout(() => this.blip(130, 0.1, "square", 0.02), 110);
+    },
+    noise(dur, freq, q, vol, type) {
+      if (!state.sound) return;
+      this.init(); if (!this.ctx) return;
+      const d = Math.max(0.01, dur || 0.08), len = Math.max(1, Math.floor(this.ctx.sampleRate * d));
+      const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+      const src = this.ctx.createBufferSource(); src.buffer = buf;
+      const f = this.ctx.createBiquadFilter(); f.type = type || "bandpass";
+      f.frequency.value = freq || 1600; f.Q.value = q || 0.8;
+      const g = this.ctx.createGain(); g.gain.value = vol || 0.02;
+      const t = this.ctx.currentTime;
+      g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+      src.connect(f); f.connect(g); g.connect(this.ctx.destination);
+      src.start(t); src.stop(t + d + 0.02);
+    },
+    textGlitch() {
+      this.noise(0.055, 2200, 1.4, 0.028);
+      this.blip(360 + Math.random() * 280, 0.045, "square", 0.01);
+    },
+    message() {
+      this.blip(880, 0.075, "sine", 0.03);
+      setTimeout(() => this.blip(660, 0.11, "sine", 0.025), 95);
+    },
+    shutter() {
+      this.noise(0.045, 3200, 0.9, 0.03, "highpass");
+      setTimeout(() => this.noise(0.05, 900, 1.2, 0.015), 45);
+    },
+    mind() {
+      if (!state.sound) return;
+      this.init(); if (!this.ctx) return;
+      const t = this.ctx.currentTime;
+      const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+      o.type = "sawtooth";
+      o.frequency.setValueAtTime(86, t);
+      o.frequency.exponentialRampToValueAtTime(31, t + 1.05);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.025, t + 0.08);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 1.1);
+      o.connect(g); g.connect(this.ctx.destination);
+      o.start(t); o.stop(t + 1.15);
+      this.noise(0.12, 340, 0.7, 0.012, "lowpass");
+    },
+    shutdown() {
+      if (!state.sound) return;
+      this.init(); if (!this.ctx) return;
+      const t = this.ctx.currentTime;
+      const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+      o.type = "sine";
+      o.frequency.setValueAtTime(210, t);
+      o.frequency.exponentialRampToValueAtTime(38, t + 1.25);
+      g.gain.setValueAtTime(0.03, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 1.3);
+      o.connect(g); g.connect(this.ctx.destination);
+      o.start(t); o.stop(t + 1.35);
+      this.noise(0.3, 220, 0.5, 0.018, "lowpass");
     }
   };
 
@@ -204,8 +268,8 @@
       <div class="title-screen" style="position:fixed;inset:0;z-index:9410">
         <div class="title-inner">
           <div class="title-kicker">AN ORIGINAL NETWORK MYSTERY / 2014</div>
-          <h1 class="title-main">回声层</h1>
-          <div class="title-sub">第 七 页 &nbsp;/&nbsp; ECHO LAYER · PAGE SEVEN</div>
+          <h1 class="title-main">不要回复第七页</h1>
+          <div class="title-sub">DON'T REPLY TO PAGE SEVEN</div>
           <p class="title-desc">2014年9月7日凌晨，一台名为 <b>JIANGTING-07</b> 的旧电脑重新启动。论坛已经关闭，但还有一些回复在继续出现。</p>
           <div class="title-actions">
             ${cont ? '<button class="title-btn primary" data-act="title-continue">继续调查<small>RESUME</small></button>' : ""}
@@ -238,17 +302,24 @@
     }
     state.started = true;
     if (!state.startedAt) state.startedAt = Date.now();
+    if (!state.flags.soundMigrated) { state.flags.soundMigrated = true; state.sound = true; }
     save();
     hideTitle();
     $("#desktop").classList.remove("hidden");
     renderDesktop();
     updateChrome();
+    updateCognition();
     if (state.sound) Sound.set(true);
     if (fresh) {
-      setTimeout(() => toast("系统已从休眠恢复", "本地时间 2014/09/07 02:17 · 桌面有 1 个未读文件", 4200), 700);
+      setTimeout(() => toast("系统已从休眠恢复", "本地时间 2014/09/07 02:17 · 先看微信和桌面文件", 4200), 700);
     } else {
       setTimeout(() => toast("已恢复上次调查", "线索 " + clueCount() + "/" + clueTotal, 3200), 300);
     }
+    setTimeout(() => {
+      if (state.flags.wxRead) return;
+      if (!ui.win) openWechat();
+      else toast("微信 · 周 发来一条消息", "点桌面上的微信查看。", 4600);
+    }, 1300);
   }
 
   /* ---------------------------------------------------------- desktop */
@@ -258,7 +329,8 @@
       { app: "forum", label: "江汀街坊论坛", icon: "forum" },
       { app: "backup", label: "论坛备份", icon: "backup", locked: !state.flags.stopped },
       { app: "chat", label: "聊天记录", icon: "chat" },
-      { app: "readme", label: "请先阅读.txt", icon: "txt" }
+      { app: "readme", label: "请先阅读.txt", icon: "txt" },
+      { app: "wechat", label: "微信", icon: "wechat", badge: !state.flags.wxRead }
     ];
     if (state.flags.records || state.ending === "A") icons.push({ app: "last", label: "最后一条.txt", icon: "last" });
     const wrap = $("#icons");
@@ -267,6 +339,7 @@
         <span class="icon-glyph">${ICONS[it.icon] || ICONS.folder}</span>
         <span class="icon-label">${esc(it.label)}</span>
         ${it.locked ? '<span class="lockmark">•</span>' : ""}
+        ${it.badge ? '<span class="icon-badge">1</span>' : ""}
       </button>`).join("");
     updateChrome();
   }
@@ -285,9 +358,10 @@
     browser: () => "江汀街坊论坛 - Microsoft Internet Explorer",
     notepad: () => "记事本",
     chat: () => "聊天记录 - 顾南",
-    explorer: () => "我的电脑"
+    explorer: () => "我的电脑",
+    wechat: () => "微信 - 周"
   };
-  const WIN_ICONS = { browser: ICONS.forum, notepad: ICONS.txt, chat: ICONS.chat, explorer: ICONS.pc };
+  const WIN_ICONS = { browser: ICONS.forum, notepad: ICONS.txt, chat: ICONS.chat, explorer: ICONS.pc, wechat: ICONS.wechat };
 
   function openWindow(type, data) {
     ui.win = { type: type, data: data || {} };
@@ -300,6 +374,7 @@
     Sound.click();
   }
   function closeWindow() {
+    Sound.close();
     ui.win = null;
     $("#winLayer").innerHTML = "";
     buildTaskbar();
@@ -333,6 +408,8 @@
       renderChat(body);
     } else if (type === "explorer") {
       renderExplorer(body);
+    } else if (type === "wechat") {
+      renderWechat(body);
     }
     buildTaskbar();
   }
@@ -340,7 +417,7 @@
     const items = $("#taskItems");
     if (!ui.win) { items.innerHTML = ""; return; }
     const type = ui.win.type;
-    const title = type === "notepad" ? (ui.win.data.email ? "2014-09-08_邮件备份.eml" : (ui.win.data.file && D.notes[ui.win.data.file] ? D.notes[ui.win.data.file].title : "记事本")) : (type === "browser" ? (ui.tab === "archive" ? "JIANGTING ARCHIVE" : "江汀街坊论坛") : WIN_TITLES[type]().split(" - ")[0]);
+    const title = type === "notepad" ? (ui.win.data.email ? "2014-09-08_邮件备份.eml" : (ui.win.data.file && D.notes[ui.win.data.file] ? D.notes[ui.win.data.file].title : "记事本")) : (type === "browser" ? (ui.tab === "archive" ? "JIANGTING ARCHIVE" : "江汀街坊论坛") : (type === "wechat" ? "微信 - 周" : WIN_TITLES[type]().split(" - ")[0]));
     const icon = WIN_ICONS[type] || ICONS.folder;
     items.innerHTML = `<button class="task-item active" data-act="win-focus"><span class="wico" style="width:14px;height:14px">${icon}</span>${esc(title)}</button>`;
   }
@@ -489,12 +566,62 @@
     }, 700);
   }
 
+  /* ---------------------------------------------------------- wechat */
+  function renderWechat(body) {
+    const w = D.wechat;
+    const msgs = w.messages.slice();
+    if (state.flags.deepVisited) msgs.push(w.deepMessage);
+    body.innerHTML = `
+      <div class="wx-app">
+        <div class="wx-side">
+          <div class="wx-side-top">微信<span>网页版</span></div>
+          <div class="wx-contact on">
+            <img src="assets/img/${w.contact.avatar}" alt="">
+            <div><b>${esc(w.contact.name)}</b><span>你到了吗？</span></div>
+          </div>
+          <div class="wx-side-note">本机聊天记录 · 2014</div>
+        </div>
+        <div class="wx-main">
+          <div class="wx-head">
+            <img src="assets/img/${w.contact.avatar}" alt="">
+            <div><b>${esc(w.contact.name)}</b><span>${esc(w.contact.note)} · 对方已离线</span></div>
+          </div>
+          <div class="wx-body">
+            <div class="wx-day">2014年9月7日 凌晨</div>
+            ${msgs.map((m, i) => `<div class="wx-msg ${i === msgs.length - 1 && state.flags.deepVisited ? "wx-late" : ""}">
+              <img src="assets/img/${w.contact.avatar}" alt="">
+              <div><span class="wx-time">${esc(m.time)}</span><div class="wx-bubble">${esc(m.text)}</div></div>
+            </div>`).join("")}
+            ${state.flags.deepVisited ? '<div class="wx-typing"><i></i><i></i><i></i> 对方正在输入……</div>' : ""}
+          </div>
+          <div class="wx-compose">对方已离线 · 这台电脑只保留了聊天记录，无法发送</div>
+        </div>
+      </div>`;
+  }
+  function openWechat() {
+    openWindow("wechat");
+    if (!state.flags.wxRead) {
+      state.flags.wxRead = true;
+      Sound.message();
+      save();
+      renderDesktop();
+    } else if (state.flags.deepVisited && !state.flags.wxDeepHeard) {
+      state.flags.wxDeepHeard = true;
+      Sound.message();
+      save();
+    }
+  }
+
   /* ---------------------------------------------------------- browser */
   function urlOf(path) {
     const map = {
       "forum/index": "http://jiangting.local/forum/index.html",
       "forum/photos": "http://jiangting.local/forum/photos.html",
       "forum/search": "http://jiangting.local/forum/search.html",
+      "forum/login": "http://jiangting.local/forum/login.html",
+      "forum/member": "http://jiangting.local/forum/member.html",
+      "forum/staff": "http://jiangting.local/forum/staff.html",
+      "forum/pm": "http://jiangting.local/forum/pm.html",
       "archive/login": "http://jiangting.local/archive/login.html",
       "archive/index": "http://jiangting.local/archive/index.html",
       "archive/delayed": "http://jiangting.local/archive/delayed.html",
@@ -534,7 +661,7 @@
     }
     setPath(tab, path, opts.push !== false);
     if (!ui.win || ui.win.type !== "browser") openWindow("browser");
-    else renderBrowser();
+    else { Sound.page(); renderBrowser(); }
     onView(path);
     state.visits.pages++;
     save();
@@ -616,6 +743,10 @@
   function renderPage(path) {
     if (ui.tab === "archive" && state.flags.stopped) return errorPage("备份区已归档", "该页面在数据同步停止后不再可用。", "forum/index", "返回论坛");
     if (path === "forum/index") return forumHome();
+    if (path === "forum/login") return forumLogin();
+    if (path === "forum/member") return forumMember();
+    if (path === "forum/staff") return forumStaff();
+    if (path === "forum/pm") return forumPM();
     if (path === "forum/photos") return forumPhotos();
     if (path === "forum/search") return forumSearch();
     if (path.indexOf("forum/section/") === 0) return forumSection(path.split("/").pop());
@@ -642,9 +773,18 @@
       if (tid === "n3") unlockClue("windSilent");
     }
     if (path === "forum/profile/wind") unlockClue("lastLogin");
+    if (path === "forum/pm" || path === "forum/thread/s1") {
+      unlockClue("signature");
+      if (path === "forum/pm") {
+        state.flags.pmRead = true;
+        save();
+        const b = $(".nav-badge"); if (b) b.remove();
+      }
+    }
     if (path === "archive/index" || path === "archive/delayed" || path === "archive/deleted" || path === "archive/conversations" || path === "archive/page7") {
       if (!state.flags.deepVisited) {
         state.flags.deepVisited = true;
+        Sound.mind();
         toast("已进入旧站备份系统", "注意页面上的两处时间。", 3800);
       }
       state.visits.deep++;
@@ -652,6 +792,7 @@
       save();
     }
     save();
+    updateCognition();
   }
   function afterPageMount(path) {
     if (path === "archive/login") {
@@ -691,8 +832,9 @@
             <div class="forum-brand">江汀街坊论坛<small>JIANGTING COMMUNITY BBS · EST. 2008</small></div>
             <div class="forum-stats">
               今日帖子 <b>${state.flags.stopped ? 0 : D.forumStats.today}</b> · 注册用户 <b>${D.forumStats.users}</b><br>
-              当前在线 <b>${online}</b> 人 · 游客 1 人 · 最后更新 <b>${updated}</b><br>
+              当前在线 <b>${online}</b> 人 · 游客 ${state.flags.loggedIn ? 0 : 1} 人 · 会员 ${state.flags.loggedIn ? 1 : 0} 人 · 最后更新 <b>${updated}</b><br>
               版主 <a data-nav="forum/profile/wind" class="hdr-link">晚风</a> · 管理员 <a data-nav="forum/profile/nan" class="hdr-link">南岸</a>
+              ${state.flags.loggedIn ? '· 本机登录 <span class="who-ghost hdr-link" data-ghost="晚风">老周</span>' : ""}
             </div>
           </div>
         </div>
@@ -703,6 +845,9 @@
           <a data-nav="forum/section/notice">站务公告</a>
           <a data-nav="forum/photos">旧照片区</a>
           <a data-nav="forum/search">搜索</a>
+          ${state.flags.loggedIn
+            ? '<a data-nav="forum/member" class="nav-login"><span class="who-ghost" data-ghost="晚风">老周</span></a><a data-nav="forum/staff">值班室</a><a data-nav="forum/pm" class="nav-login">私信' + (!state.flags.pmRead ? ' <b class="nav-badge">1</b>' : "") + '</a>'
+            : '<a data-nav="forum/login" class="nav-login">登录</a>'}
           ${state.flags.stopped
             ? '<span class="nav-backup" style="padding:8px 9px;opacity:.5">备份入口已关闭</span>'
             : '<a class="nav-backup" data-nav="archive/login">旧站备份入口 →</a>'}
@@ -721,6 +866,7 @@
     if (t.warn) tags += '<span class="tag red">警告</span>';
     if (t.hot) tags += '<span class="tag red">热</span>';
     if (t.photo) tags += '<span class="tag blue">图</span>';
+    if (t.memberOnly) tags += '<span class="tag red">内部</span>';
     const lastP = t.replies.length ? D.people[t.replies[t.replies.length - 1].by] : p;
     return `<a class="thread-row ${t.pinned ? "pinned" : ""}" data-nav="forum/thread/${t.id}">
       <span class="th-title">${tags}<span>${esc(t.title)}</span>${t.photo ? '<span class="clip">[照片]</span>' : ""}</span>
@@ -748,9 +894,9 @@
     return list;
   }
   function forumHome() {
-    const list = allThreads();
+    const list = allThreads().filter((t) => !t.memberOnly);
     const latest = list.slice().sort((a, b) => (a.last || a.time) < (b.last || b.time) ? 1 : -1).slice(0, 8);
-    const cards = D.sections.map((s) => `
+    const cards = D.sections.filter((s) => !s.memberOnly).map((s) => `
       <a class="board-card" data-nav="${s.id === "photos" ? "forum/photos" : "forum/section/" + s.id}">
         <h3>${esc(s.name)}</h3>
         <p>${esc(s.desc)}</p>
@@ -759,7 +905,9 @@
       </a>`).join("");
     return forumShell(`
       <div class="crumb">江汀街坊论坛 › 论坛首页</div>
-      <div class="board-grid">${cards}</div>
+      <div class="board-grid">${cards}
+        ${state.flags.loggedIn ? `<a class="board-card staff-card" data-nav="forum/staff"><h3>值班室 <span class="staff-tag">内部</span></h3><p>夜间值班记录与交接。只有登录的值班人员能看到。</p><span class="bc-count">2 个主题</span><span class="bc-arrow">›</span></a>` : ""}
+      </div>
       <div class="section-title"><span>最新回复</span><span style="letter-spacing:0;color:#98a4ad;font-size:10px">按最后回复时间排序</span></div>
       ${threadTable(latest)}
       <div class="foot-links">
@@ -768,17 +916,98 @@
       </div>
     `);
   }
+  function forumGate(text) {
+    return `<div class="forum-gate">
+      <div class="fg-lock">LOCKED</div>
+      <h3>需要登录</h3>
+      <p>${esc(text)}</p>
+      <a class="btn-forum" data-nav="forum/login">会员登录</a>
+      <a class="btn-ghost" data-nav="forum/index">返回论坛首页</a>
+    </div>`;
+  }
+  function forumLogin() {
+    if (state.flags.loggedIn) return forumMember();
+    return forumShell(`
+      <div class="crumb"><a data-nav="forum/index">江汀街坊论坛</a> › 会员登录</div>
+      <div class="login-panel">
+        <h2>会员登录</h2>
+        <div class="lp-sub">JIANGTING BBS · MEMBER LOGIN</div>
+        <div class="lp-notice">本站已停止注册新用户。已注册会员仍可登录。</div>
+        <form data-form="forum-login" autocomplete="off">
+          <label>用户名<input name="user" maxlength="24" spellcheck="false" placeholder="不是昵称"></label>
+          <label>密码<input name="pass" type="password" maxlength="16" placeholder="••••"></label>
+          <div class="lp-row"><button class="btn-forum" type="submit">登录</button><button class="btn-ghost" type="button" data-act="forgot-pwd">忘记密码</button></div>
+          <div class="login-error" id="forumLoginMsg"></div>
+        </form>
+        <div class="reset-hint hidden" id="resetHint"><b>密码重置提示</b><br>${esc(D.resetHint)}<br><span>提示：钥匙牌上的号码在报修专区《那天的钥匙》里。</span></div>
+        <div class="lp-foot">用户名不是昵称。忘了用户名，可以看站务公告的《最近登录问题比较多，集中回复一下》。<br>登录状态只保存在这台电脑上。</div>
+      </div>
+    `);
+  }
+  function forumMember() {
+    if (!state.flags.loggedIn) return forumLogin();
+    const p = D.people.zhou;
+    return forumShell(`
+      <div class="crumb"><a data-nav="forum/index">江汀街坊论坛</a> › 会员中心</div>
+      <div class="member-card">
+        <img src="assets/img/${p.avatar}" alt="老周">
+        <div class="mc-main">
+          <h2>老周 <span>已登录</span></h2>
+          <p>UID 0007 · 值班室成员 · 最后登录 2014-09-07 02:17</p>
+          <p class="member-ghost">本机最近一次会话：晚风 / 2014-09-07 02:17</p>
+        </div>
+      </div>
+      <div class="member-grid">
+        <a class="member-tile" data-nav="forum/pm"><b>我的私信 ${!state.flags.pmRead ? '<i class="nav-badge">1</i>' : ""}</b><span>来自晚风 · 主题：我走了</span><em>会员中心 ›</em></a>
+        <a class="member-tile" data-nav="forum/staff"><b>值班室 <i class="staff-tag">内部</i></b><span>第七个签名 / 别烧</span><em>会员中心 ›</em></a>
+        <button class="member-tile" data-act="forum-logout"><b>退出登录</b><span>退出后需要重新输入密码</span><em>注销本机会话</em></button>
+      </div>
+      <div class="lp-foot">值班室的帖子不会出现在公开列表。关掉浏览器后登录状态仍会保留。</div>
+    `);
+  }
+  function forumStaff() {
+    if (!state.flags.loggedIn) {
+      return forumShell(`<div class="crumb"><a data-nav="forum/index">江汀街坊论坛</a> › 值班室</div>${forumGate("值班室只对已登录的值班人员开放。请使用老周的账号登录。")}`);
+    }
+    const list = allThreads().filter((t) => t.section === "staff").sort((a, b) => (a.last || a.time) < (b.last || b.time) ? 1 : -1);
+    return forumShell(`
+      <div class="crumb"><a data-nav="forum/index">江汀街坊论坛</a> › <a data-nav="forum/member">会员中心</a> › 值班室</div>
+      <div class="section-title"><span>值班室 · 仅值班人员可见</span><span style="letter-spacing:0;color:#98a4ad;font-size:10px">本机登录：老周</span></div>
+      <div class="staff-note">这些帖子不会出现在公开的最新回复里。南岸看不到你在这里停留了多久。</div>
+      ${threadTable(list)}
+      <div class="foot-links"><span>值班室只有两个主题。最后一个签名在档案柜最底层。</span><span>只读存档 · 2014-09-07</span></div>
+    `);
+  }
+  function forumPM() {
+    if (!state.flags.loggedIn) return forumLogin();
+    if (!state.flags.pmRead) { state.flags.pmRead = true; save(); }
+    const pm = D.pm;
+    return forumShell(`
+      <div class="crumb"><a data-nav="forum/index">江汀街坊论坛</a> › <a data-nav="forum/member">会员中心</a> › 私信</div>
+      <div class="pm-panel">
+        <div class="pm-head"><span>私信 · 1 封</span><span>${state.flags.pmRead ? "已读" : "未读"}</span></div>
+        <div class="pm-row"><b>发件人</b><span>晚风</span><b>时间</b><span>${esc(pm.time)}</span><b>主题</b><span>${esc(pm.subject)}</span></div>
+        <div class="pm-body">${pm.body}</div>
+        <div class="pm-foot">发件人账号已于 2014-09-08 03:00 注销。此私信为只读。<br>系统备注：该私信没有被回复。</div>
+      </div>
+      <div class="foot-links"><span>私信只保存在这台电脑上。</span><a data-nav="forum/member">返回会员中心</a></div>
+    `);
+  }
   function forumSection(id) {
     const sec = D.sections.find((s) => s.id === id);
     if (!sec) return errorPage("版块不存在", "该版块可能已被删除。", "forum/index", "返回论坛首页");
     if (id === "photos") return forumPhotos();
+    if (sec.memberOnly && !state.flags.loggedIn) {
+      return forumShell(`<div class="crumb"><a data-nav="forum/index">江汀街坊论坛</a> › 值班室</div>${forumGate("值班室只对已登录的值班人员开放。请使用老周的账号登录。")}`);
+    }
     const list = allThreads().filter((t) => t.section === id).sort((a, b) => {
       if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
       return (a.last || a.time) < (b.last || b.time) ? 1 : -1;
     });
     return forumShell(`
       <div class="crumb"><a data-nav="forum/index">江汀街坊论坛</a> › ${esc(sec.name)}</div>
-      <div class="section-title"><span>${esc(sec.name)} · ${esc(sec.sub)}</span><span style="letter-spacing:0;color:#98a4ad;font-size:10px">版主：${id === "notice" ? "南岸" : "晚风"}</span></div>
+      <div class="section-title"><span>${esc(sec.name)} · ${esc(sec.sub)}</span><span style="letter-spacing:0;color:#98a4ad;font-size:10px">${id === "staff" ? "内部版块" : "版主：" + (id === "notice" ? "南岸" : "晚风")}</span></div>
+      ${id === "staff" ? '<div class="staff-note">值班室 · 仅值班人员可见。这些帖子不会出现在公开的最新回复里。</div>' : ""}
       ${threadTable(list)}
       <div class="pager"><span class="on">1</span><span>2</span><span>3</span><span>›</span><span style="border:0;background:transparent;color:#93a0a8">共 ${Math.max(3, Math.ceil(list.length / 8))} 页</span></div>
       <div class="foot-links"><span>本版规则：请勿发布与版块无关的内容。</span><span>${state.flags.stopped ? "只读存档" : "新帖发布已关闭"}</span></div>
@@ -811,6 +1040,9 @@
     }
     const t = D.threads.find((x) => x.id === id);
     if (!t) return errorPage("主题不存在", "该帖子可能已被删除或归档。", "forum/index", "返回论坛首页");
+    if (t.memberOnly && !state.flags.loggedIn) {
+      return forumShell(`<div class="crumb"><a data-nav="forum/index">江汀街坊论坛</a> › 值班室</div>${forumGate("该主题只对值班人员开放。请先登录。")}`);
+    }
     const p = D.people[t.author];
     const photo = t.photo ? D.photos[t.photo] : null;
     const body = t.body + (photo ? `
@@ -837,8 +1069,8 @@
       </div>
       ${replies}
       <div class="reply-form">
-        <textarea readonly placeholder="${state.flags.stopped ? "论坛已停止运行，只能查看。" : "游客（未登录）不能回复。本论坛已停止注册新用户。"}"></textarea>
-        <div class="rf-row"><span>您需要登录后才能回复。${state.flags.stopped ? "服务器已关闭。" : ""}</span><button class="btn-forum" disabled>发表回复</button></div>
+        <textarea readonly placeholder="${state.flags.stopped ? "论坛已停止运行，只能查看。" : (state.flags.loggedIn ? "已登录：老周。论坛已停止发帖，只能查看。" : "游客（未登录）不能回复。本论坛已停止注册新用户。")}"></textarea>
+        <div class="rf-row"><span>${state.flags.loggedIn ? "已登录：老周 · 只读存档" : "您需要登录后才能回复。"}${state.flags.stopped ? "服务器已关闭。" : ""}</span><button class="btn-forum" disabled>发表回复</button></div>
       </div>
       <div class="pager"><span class="on">1</span><span>2</span><span>下一页 ›</span></div>
       <div class="foot-links"><span>本主题共 ${t.replies.length + 1} 楼　·　浏览 ${t.views} 次</span><span class="admin-link" data-act="report">举报 | 申请删帖</span></div>
@@ -861,7 +1093,7 @@
   }
   function forumSearch() {
     const q = (ui.search || "").trim();
-    const list = q ? allThreads().filter((t) => (t.title + " " + (t.body || "")).indexOf(q) >= 0) : [];
+    const list = q ? allThreads().filter((t) => (!t.memberOnly || state.flags.loggedIn) && (t.title + " " + (t.body || "")).indexOf(q) >= 0) : [];
     return forumShell(`
       <div class="crumb"><a data-nav="forum/index">江汀街坊论坛</a> › 搜索</div>
       <div class="section-title"><span>站内搜索</span><span style="letter-spacing:0;color:#98a4ad;font-size:10px">仅检索标题与正文</span></div>
@@ -876,7 +1108,7 @@
   function forumProfile(key) {
     const p = D.people[key] || D.people.guest;
     const isWind = key === "wind";
-    const threads = allThreads().filter((t) => (isWind ? t.author === "wind" : t.author === key));
+    const threads = allThreads().filter((t) => (!t.memberOnly || state.flags.loggedIn) && (isWind ? t.author === "wind" : t.author === key));
     if (isWind) { unlockClue("lastLogin"); }
     return forumShell(`
       <div class="crumb"><a data-nav="forum/index">江汀街坊论坛</a> › 用户资料 › ${esc(p.name)}</div>
@@ -891,6 +1123,7 @@
             <b>最后登录</b><span>${isWind ? "2014-09-07 02:17" : (key === "nan" ? "2014-09-07 02:17" : "2014-09-07 00:26")}</span>
             <b>用户组</b><span>${esc(p.role || "居民")}</span>
             ${isWind ? '<b>账号状态</b><span style="color:#a4422f">资料归档 · 暂停访问</span>' : ""}
+            ${!isWind && p.account && state.flags.loggedIn ? `<b>用户名</b><span>${esc(p.account)}</span>` : ""}
           </div>
           <div style="margin-top:8px;font-size:11px;color:#6f7d86">签名：${esc(p.sig || "—")}</div>
         </div>
@@ -1068,19 +1301,20 @@
         <div class="p7-online">当前在线人数：<b id="p7OnlineVal">${online}</b> · <span class="typing">正在输入……</span></div>
       </div>
       <div class="p7-crumb"><span>JIANGTING ARCHIVE · RECORD 0007 · PAGE 07</span><a data-nav="archive/index">← 返回备份系统</a></div>
+      <div class="p7-ghost" aria-hidden="true">哥。你还在吗？<br>不要再回复我了。<br>这里没有人。</div>
       ${inner}
     </div>`;
   }
   function archivePage7() {
-    const first = !state.p7Seen;
     state.p7Seen = true;
     state.visits.p7++;
+    const v = state.visits.p7;
     state.visits.deep++;
     unlockClue("page7");
     unlockClue("onlineAnomaly");
+    if (v === 1) { mindFlash(); updateCognition(); }
     if (state.flags.deepVisited && !state.ending) { state.online = 1; }
     save();
-    const v = state.visits.p7;
     if (state.ending === "B") return page7AfterB();
     let extra = "";
     if (v >= 2 && !state.ending) {
@@ -1189,8 +1423,46 @@
       state.loginFails = (state.loginFails || 0) + 1;
       msg.textContent = val.length !== 4 ? "口令必须为四位数字。" : "口令错误。访问记录已写入日志。";
       if (state.loginFails >= 2) msg.textContent += "（提示：晚风最后一次登录时间可在论坛首页或她的资料页找到。）";
-      Sound.blip(120, 0.12, "sawtooth", 0.02);
+      Sound.error();
       setTimeout(() => input.classList.remove("err"), 900);
+    }
+  }
+  function doForumLogin(form) {
+    const u = (form.querySelector("input[name='user']").value || "").trim().toLowerCase();
+    const p = (form.querySelector("input[name='pass']").value || "").trim();
+    const msg = $("#forumLoginMsg");
+    if (!msg) return;
+    const acc = D.accounts[u];
+    if (!acc) {
+      msg.style.color = "#a4422f";
+      msg.textContent = "该用户名不存在。本站已停止注册新用户。";
+      Sound.error();
+      return;
+    }
+    if (u !== "zhou_0717") {
+      msg.style.color = "#a4422f";
+      msg.textContent = "该账号没有在这台电脑上登录过。请使用本机记住的账号。";
+      Sound.error();
+      return;
+    }
+    if (acc.passwords.includes(p)) {
+      state.flags.loggedIn = true;
+      state.flags.loginUser = u;
+      state.flags.loginFails = 0;
+      save();
+      Sound.unlock();
+      mindFlash();
+      updateCognition();
+      msg.style.color = "#2b6b45";
+      msg.textContent = "登录成功。正在进入会员中心……";
+      setTimeout(() => { navigate("forum/member"); }, 550);
+    } else {
+      state.flags.loginFails = (state.flags.loginFails || 0) + 1;
+      save();
+      msg.style.color = "#a4422f";
+      msg.textContent = "密码错误。可以点“忘记密码”查看安全提示。";
+      if (state.flags.loginFails >= 3) msg.textContent += "（这台电脑只记住了老周的登录状态。）";
+      Sound.error();
     }
   }
   function doJump(form) {
@@ -1256,6 +1528,8 @@
     if (!state.clues.key07) return "报修专区里老周的《那天的钥匙》提到一块钥匙牌，上面有一个数字。";
     if (!state.p7Seen) return "在备份首页的「七个人的值班记录」下，把那个数字填进页码跳转框。共 6 页，但最后一次备份不一定是最后一页。";
     if (!state.flags.truth) return "回到桌面，打开「聊天记录」。隐藏邮件的日期在论坛关闭之后。";
+    if (!state.flags.loggedIn && state.flags.deepVisited) return "论坛有登录入口。用户名在站务公告的《最近登录问题比较多》里；登录页点「忘记密码」会给出密码提示。";
+    if (state.flags.loggedIn && !state.flags.pmRead) return "会员中心有一封晚风的未读私信；值班室里还有《第七个签名》。";
     if (!state.flags.records) return "再进入第七页。读完邮件后，页面底部会出现「查看原始记录」。";
     if (!state.flags.lastNote) return "回到桌面，打开新出现的「最后一条.txt」。";
     if (!state.ending) return "停不停止同步，回不回答，都是选择。没有正确结局，只有你愿意留下的东西。";
@@ -1380,7 +1654,7 @@
       <div class="lb-cap">${esc(thread ? thread.title : "")}　${esc(thread ? thread.caption : "")}<br><span style="color:#5f756e;font-size:10px">点击空白处关闭</span></div>`;
     lb.addEventListener("click", () => lb.remove());
     document.body.appendChild(lb);
-    Sound.click();
+    Sound.shutter();
   }
 
   /* ---------------------------------------------------------- endings */
@@ -1398,10 +1672,12 @@
   function confirmStop() {
     closeModal();
     clearToasts();
+    Sound.shutdown();
     state.ending = "A";
     state.flags.stopped = true;
     state.online = 0;
     save();
+    updateCognition();
     Sound.glitch();
     const po = $("#powerOff");
     po.classList.remove("hidden");
@@ -1465,6 +1741,7 @@
     }
     Sound.glitch();
     setTimeout(() => {
+      Sound.mind();
       closeWindow();
       const po = $("#powerOff");
       po.classList.remove("hidden");
@@ -1497,7 +1774,7 @@
             <button data-act="ending-restart">重新开始</button>
             <button data-act="ending-about">关于本作</button>
           </div>
-          <div class="ending-foot">ECHO LAYER / PAGE SEVEN<br>2014-09-07 02:17 — 2014-09-07 03:22<br>所有人物、论坛与事件均为虚构。</div>
+          <div class="ending-foot">DON'T REPLY TO PAGE SEVEN<br>2014-09-07 02:17 — 2014-09-07 03:22<br>所有人物、论坛与事件均为虚构。</div>
         </div>
       </div>`;
     ui.endingShown = true;
@@ -1512,6 +1789,7 @@
     $("#overlay").innerHTML = "";
     renderDesktop();
     updateChrome();
+    updateCognition();
     if (state.ending === "A") {
       toast("本机时间：2014/09/08", "「论坛备份」可以打开了。", 4600);
     } else {
@@ -1533,6 +1811,7 @@
       <button data-app="explorer"><span style="width:18px">${ICONS.pc}</span>我的电脑</button>
       <button data-app="forum"><span style="width:18px">${ICONS.forum}</span>江汀街坊论坛</button>
       <button data-app="chat"><span style="width:18px">${ICONS.chat}</span>聊天记录</button>
+      <button data-app="wechat"><span style="width:18px">${ICONS.wechat}</span>微信</button>
       <button data-app="readme"><span style="width:18px">${ICONS.txt}</span>请先阅读.txt</button>
       <button data-act="open-clue"><span style="width:18px">${ICONS.search}</span>调查记录</button>
       <button data-act="about"><span style="width:18px">${ICONS.folder}</span>关于本机</button>
@@ -1559,7 +1838,7 @@
       </div>
       <hr class="arc-rule">
       <h3 style="font-size:14px;margin-top:4px">关于本作</h3>
-      <p>《回声层：第七页》是一段原创网络怪谈解谜。你用一台2014年的旧电脑，调查一个已经关闭的社区论坛。没有跳吓，没有追逐，只有一个不断等待回答的页面。</p>
+      <p>《不要回复第七页》是一段原创网络怪谈解谜。你用一台2014年的旧电脑，调查一个已经关闭的社区论坛。没有跳吓，没有追逐，只有一个不断等待回答的页面。</p>
       <p>所有人物、论坛、事件均为虚构。照片为程序生成或 AI 生成的虚构档案素材，不对应任何真实人物。</p>
       <p style="color:#5f756e">设计文本依据创作笔记重新编写；界面、代码与素材为本作独立实现。</p>
       <div class="m-btns"><button class="m-btn pri" data-act="close-modal">关闭</button></div>
@@ -1615,6 +1894,7 @@
     e.preventDefault();
     const kind = form.dataset.form;
     if (kind === "login") return doLogin(form);
+    if (kind === "forum-login") return doForumLogin(form);
     if (kind === "p7jump") return doJump(form);
     if (kind === "search") {
       const q = (form.querySelector("input[name='q']").value || "").trim();
@@ -1635,7 +1915,8 @@
     if (s === "archive" || s === "archive/index") return navigate(state.flags.archiveUnlocked ? "archive/index" : "archive/login");
     if (s === "archive/login" || s === "archive/delayed" || s === "archive/deleted" || s === "archive/conversations" || s === "archive/page7" ||
         s === "forum/photos" || s === "forum/search" ||
-        /^forum\/section\/(life|repair|notice|photos)$/.test(s) ||
+        s === "forum/login" || s === "forum/member" || s === "forum/staff" || s === "forum/pm" ||
+        /^forum\/section\/(life|repair|notice|photos|staff)$/.test(s) ||
         /^forum\/thread\/[a-z0-9]+$/.test(s) ||
         /^forum\/profile\/(nan|wind|zhou|man|mei|chen)$/.test(s)) {
       if (s.indexOf("archive/") === 0 && !state.flags.archiveUnlocked) return navigate("archive/login");
@@ -1680,6 +1961,7 @@
         else { openBrowser("forum"); }
         return;
       case "chat": openWindow("chat"); return;
+      case "wechat": openWechat(); return;
       case "readme": openNotepad("readme"); return;
       case "last":
         if (!(state.flags.records || state.ending === "A")) { cannotReplyModal(); return; }
@@ -1706,7 +1988,7 @@
       case "win-min": closeWindow(); return;
       case "win-max": Sound.click(); return;
       case "win-focus": Sound.click(); return;
-      case "switch-tab": ui.tab = el.dataset.tab; renderBrowser(); return;
+      case "switch-tab": ui.tab = el.dataset.tab; Sound.page(); renderBrowser(); return;
       case "nav-back":
         if (ui.idx[ui.tab] > 0) {
           ui.idx[ui.tab]--; renderBrowser(); onView(curPath());
@@ -1755,6 +2037,22 @@
         return;
       case "stop-sync": stopSync(); return;
       case "confirm-stop": confirmStop(); return;
+      case "forgot-pwd": {
+        Sound.page();
+        const hint = $("#resetHint");
+        if (hint) hint.classList.remove("hidden");
+        const msg = $("#forumLoginMsg");
+        if (msg) { msg.style.color = "#5c6d79"; msg.textContent = "安全提示已显示。"; }
+        return;
+      }
+      case "forum-logout":
+        Sound.close();
+        state.flags.loggedIn = false;
+        state.flags.loginUser = "";
+        save();
+        navigate("forum/index");
+        toast("已退出登录", "本机会话已注销。", 3000);
+        return;
       case "photo": openLightbox(el.dataset.photo); return;
       case "report": cannotReplyModal(); return;
       case "chat-select":
@@ -1768,9 +2066,10 @@
         openModal(`
           <button class="m-close" data-act="close-modal">×</button>
           <h3>操作与提示</h3>
-          <p>点击桌面图标打开程序。论坛和备份系统在浏览器里，左下角可以后退。</p>
-          <p>所有密码都能在故事里找到明确来源，不需要猜。线索会自动归档，点击状态栏的「线索簿」查看。</p>
-          <p>游戏会自动保存。关闭浏览器后再打开，深层备份的标签页仍在。</p>
+          <p>点击桌面图标打开程序。开局会自动打开「微信」，老周会给你方向；之后可以从桌面或状态栏重新打开。</p>
+          <p>论坛有「登录」入口：老周的用户名在站务公告的登录问题帖里；密码忘了就点登录页的「忘记密码」看安全提示。注册通道已经关闭，但老会员仍可登录。</p>
+          <p>论坛和备份系统在浏览器里，左下角可以后退。所有密码都能在故事里找到明确来源，不需要猜。</p>
+          <p>线索会自动归档，点击状态栏的「线索簿」查看。游戏会自动保存；关闭浏览器后再打开，深层备份的标签页仍在。</p>
           <p>有声音开关，默认关闭。建议在安静环境里读完每一段文字。</p>
           <div class="m-btns"><button class="m-btn pri" data-act="close-modal">开始</button></div>
         `);
@@ -1839,12 +2138,49 @@
     e.stopPropagation();
     state.sound = !state.sound;
     Sound.set(state.sound);
+    if (state.sound) Sound.unlock();
     updateChrome(); save();
     toast(state.sound ? "环境音已开启" : "环境音已关闭", state.sound ? "一种很低的电流声。" : "", 2200);
   });
   $("#overlay").addEventListener("click", (e) => {
     if (e.target.id === "overlay" && !ui.endingShown) closeModal();
   });
+
+  /* ---------------------------------------------------------- cognition */
+  function updateCognition() {
+    const on = !state.flags.stopped && !!(state.flags.deepVisited || state.p7Seen || state.flags.loggedIn);
+    document.documentElement.classList.toggle("cognition", on);
+  }
+  function mindFlash() {
+    Sound.mind();
+    document.body.classList.remove("mind-flash");
+    void document.body.offsetWidth;
+    document.body.classList.add("mind-flash");
+    setTimeout(() => document.body.classList.remove("mind-flash"), 650);
+  }
+  function cognitionTick() {
+    if (document.hidden) return;
+    if (!state.flags.deepVisited && !state.p7Seen) return;
+    const all = $$(".p7-body p, .p7-title, .arc-hint, .arc-note, .forum-brand");
+    const el = all[Math.floor(Math.random() * all.length)];
+    if (!el || el.childElementCount > 0 || !el.textContent || el.textContent.length < 4 || el.dataset.glitching) return;
+    const text = el.textContent;
+    const i = 1 + Math.floor(Math.random() * (text.length - 2));
+    const pool = "江汀回页她你在看记录第七";
+    el.dataset.glitching = "1";
+    el.dataset.orig = text;
+    el.classList.add("glitch-text");
+    el.textContent = text.slice(0, i) + pool[Math.floor(Math.random() * pool.length)] + text.slice(i + 1);
+    Sound.textGlitch();
+    setTimeout(() => {
+      if (!el.dataset.glitching) return;
+      el.textContent = el.dataset.orig;
+      el.classList.remove("glitch-text");
+      delete el.dataset.glitching;
+      delete el.dataset.orig;
+    }, 110);
+  }
+  setInterval(cognitionTick, 8000);
 
   /* ---------------------------------------------------------- init */
   runBoot();
